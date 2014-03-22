@@ -22,7 +22,7 @@ opts=struct('DD','/data/vision/billf/manifold-learning/Data/Seg/Segtrack/',...
     save data/opt_3d opts 
 end
 % A.2 parallel train N trees
-do_local=0;
+do_local=1;
 if do_local
     try;matlabpool;end;
     cd core
@@ -37,10 +37,10 @@ st3dTrain(opts);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % B. test boundary detection
 load models/forest/model3D
-DD='/data/vision/billf/stereo-vision/';
+DD='/data/vision/billf/stereo-vision/Data/';
 fns = dir([DD 'Occ/CMU/clips']);
 fns(1:2)=[];
-tsz_h = (opts.tsz-1)/2;
+tsz_h = (model.opts.tsz-1)/2;
 tsz_step = 1;% number of frames in between 
 st3d = cell(1,numel(fns));
 parfor i=1:numel(fns)

@@ -40,8 +40,8 @@ tic;[label, center] = litekmeans(double(mat_x), ncluster, 'MaxIter', niter);toc
 
 clusters.clusters = single(center);
 clusters.chStd = tmp_std;
-save data/cluster_berk100 clusters
 opts.clusterFnm = 'data/cluster_berk100';
+save(opts.clusterFnm,'clusters')
 opts.patch_id =3;
 [mat_x,mat_y] = st3dGetPatch(opts);
 len = arrayfun(@(x) numel(mat_x{x}),1:numel(mat_x));
@@ -51,6 +51,10 @@ clusters.scaleId = cell2mat(arrayfun(@(x) mod(x,nScale)*ones(1,len(x)),1:numel(m
 clusters.scaleId(clusters.scaleId==0) = nScale;
 clusters.ind = cell2mat(mat_x);
 clusters.clusterId = cell2mat(mat_y);
+save(opts.clusterFnm,'clusters')
+
+% check stats:
+%aa=histc(clusters.clusterId,1:ncluster);
 %{
 aa=histc(label,1:ncluster)
 [a,b]=max(aa);

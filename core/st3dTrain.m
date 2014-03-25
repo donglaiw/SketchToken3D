@@ -1,14 +1,9 @@
 function st3dTrain(opts)
-addpath(genpath('/data/vision/billf/stereo-vision/VisionLib/Donglai/Util/io'))
-addpath(genpath('/data/vision/billf/stereo-vision/VisionLib/Piotr'))
+addpath(../);param_init;
+addpath(genpath([D_VLIB 'Util/io']))
+addpath(genpath([D_VLIB '../Piotr']))
 
-dfs={'DD',[],'loadmat',[],'pratio',0,'tsz',0,'tstep',0,'num_pervol',0,'ntChns',2,...
-    'nClusters',150, 'nTrees',25, 'radius',17, 'nPos',1000, 'nNeg',800,...
-    'negDist',2, 'minCount',4, 'nCells',5, 'normRad',5, 'normConst',0.01, ...
-    'nOrients',[4 4 0], 'sigmas',[0 1.5 5], 'chnsSmooth',2, 'fracFtrs',1, ...
-    'seed',1, 'modelDir','models/', 'modelFnm','model', ...
-    'clusterFnm','clusters.mat', 'bsdsDir','BSR/BSDS500/data/'};
-opts = getPrmDflt(opts,dfs,1);
+opts= st3dMakeOpts(opts);
 
 forestDir = [opts.modelDir '/forest/'];
 forestFn = [forestDir opts.modelFnm];
@@ -19,20 +14,6 @@ end
 
 
 nTrees=opts.nTrees;
-nCells=opts.nCells;
-nChns = size(stChns(ones(2,2,3),opts),3);
-opts.nChns=nChns;
-opts.patchSiz=2*opts.radius + 1;
-psz = opts.patchSiz;
-
-%opts.nChnFtrs = psz*psz*nChns;
-%opts.nSimFtrs = (nCells*nCells)*(nCells*nCells-1)/2*nChns;
-%opts.nTotFtrs = opts.nChnFtrs + opts.nSimFtrs;
-
-opts.cellRad = round(psz/nCells/2);
-tmp=opts.cellRad*2+1;
-opts.cellStep = tmp-ceil((nCells*tmp-psz)/(nCells-1));
-
 stream=RandStream('mrg32k3a','Seed',opts.seed);
 % train nTrees random trees (can be trained with parfor if enough memory)
 for i=1:nTrees

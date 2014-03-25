@@ -1,6 +1,6 @@
 addpath('/home/Stephen/Desktop/VisionLib/Donglai/Util/io')
 
-did =1;
+did = 0;
 % 0. data structure
 switch did
     case 0
@@ -8,7 +8,6 @@ switch did
         fns = dir(DD);
         fns(1:2)=[];
         gts = cell(1,numel(fns));
-        gts2 = cell(1,numel(fns));
         ids = zeros(1,numel(fns));
         for i=1:numel(fns)
             tmp_n=dir([DD fns(i).name '/*.mat']);
@@ -16,8 +15,8 @@ switch did
             ids(i) = str2num(tmp_n(find(tmp_n=='e',1,'first')+1:find(tmp_n=='.',1,'first')-1));
             tmp=load([DD fns(i).name '/' tmp_n]);
             gts{i}=tmp.groundTruth.Boundaries;
-            gts2 = cell(1,numel(fns));
         end
+        save berk1 gts %gts2
     case 1
         % for i in `ls *.bmp`;do convert $i "${i%.bmp}.png"; done;
         DD='/home/Stephen/Desktop/Data/Seg/Segtrack/';
@@ -40,8 +39,8 @@ switch did
             gts{i} = logical(tmp_e);
             %gts2{i} = logical(tmp_e2);
         end
+        save segtrack gts %gts2
 end
-save segtrack gts %gts2
 
 
 

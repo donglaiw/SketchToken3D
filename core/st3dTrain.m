@@ -1,5 +1,5 @@
 function st3dTrain(opts)
-addpath(../);param_init;
+addpath('../');param_init;
 addpath(genpath([D_VLIB 'Util/io']))
 addpath(genpath([D_VLIB '../Piotr']))
 

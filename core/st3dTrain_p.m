@@ -6,9 +6,12 @@ case 1
 case 2
     % i3d boundary
     load ../data/opt_3d opts 
+case 3
+    % i3d boundary
+    load ../data/opt_berk1 opts 
 end
 
-addpath(../);param_init;
+addpath('../');param_init;
 addpath(genpath([D_VLIB 'Util/io']))
 addpath(genpath([D_VLIB '../Piotr']))
 

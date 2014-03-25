@@ -68,7 +68,7 @@ switch opts.patch_id
             mat_x(len(i)+1:len(i+1)) = tmp_x;
             mat_y(len(i)+1:len(i+1)) = tmp_y;
         end
-    case {2,3}
+    case {2,3,4}
         % 3D boundary: 1 gts, n Is (only 1 frame labeled)
         tscale = opts.tscale;
         tsz = opts.tsz;
@@ -80,14 +80,15 @@ switch opts.patch_id
         len = cumsum([0 numel(tscale)*ones(1,num_v)]);
         mat_x = cell(len(end),1);
         mat_y = cell(len(end),1);
-        if opts.patch_id==3
+        opts.patch_id
+        if sum([3,4]==opts.patch_id)>0
             clusters=[];
             load(opts.clusterFnm)
             if opts.patch_id==4
                 tmp_center=[];
                 for i = 1:opts.nClusters
                     ids = find(clusters.clusterId == i);
-                    ids = ids(randperm(length(ids),min(nPos,length(ids))));
+                    ids = ids(randperm(length(ids),min(opts.num_pervol,length(ids))));
                     tmp_center = [tmp_center; [clusters.imId(ids),clusters.scaleId(ids),...
                     clusters.ind(ids),clusters.clusterId(ids)]]; %#ok<AGROW>
                 end
@@ -131,7 +132,7 @@ switch opts.patch_id
                         tmp_x{j} = st3dGetFeature(tmp_im,find(tmp_dist<2)',opts);                        
                         tmp_im=[];
                         dis = pdist2(bsxfun(@rdivide,tmp_x{j},clusters.chStd),clusters.clusters);
-                        tmp_x{j} = find(tmp_dist<2)';
+                        tmp_x{j} = find(tmp_dist<2);
                         tmp_dist=[];
                         [~,tmp_y{j}] = min(dis,[],2);
                     elseif opts.patch_id ==4
@@ -151,5 +152,8 @@ switch opts.patch_id
             mat_y(len(i)+1:len(i+1)) = tmp_y;
         end
 end
-mat_x = cell2mat(mat_x);
-mat_y = cell2mat(mat_y);
+
+if sum([1:2 4]==opts.patch_id)>0
+    mat_x = cell2mat(mat_x);
+    mat_y = cell2mat(mat_y);
+end

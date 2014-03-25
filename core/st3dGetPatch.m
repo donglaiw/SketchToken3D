@@ -83,6 +83,15 @@ switch opts.patch_id
         if opts.patch_id==3
             clusters=[];
             load(opts.clusterFnm)
+            if opts.patch_id==4
+                tmp_center=[];
+                for i = 1:opts.nClusters
+                    ids = find(clusters.clusterId == i);
+                    ids = ids(randperm(length(ids),min(nPos,length(ids))));
+                    tmp_center = [tmp_center; [clusters.imId(ids),clusters.scaleId(ids),...
+                    clusters.ind(ids),clusters.clusterId(ids)]]; %#ok<AGROW>
+                end
+            end
         end
         for i=1:num_v
             fprintf('   Video %d / %d\n',i,num_v);
@@ -125,6 +134,16 @@ switch opts.patch_id
                         tmp_x{j} = find(tmp_dist<2)';
                         tmp_dist=[];
                         [~,tmp_y{j}] = min(dis,[],2);
+                    elseif opts.patch_id ==4
+                        % sample patch
+                        % sample pos:
+                        tmp_ind1 = tmp_center(tmp_center(:,1)==i & tmp_center(:,2)==j,3)';
+                        % sample neg:
+                        ind2 = find(tmp_dist>psz)';
+                        tmp_ind2 = randsample(ind2,opts.num_pervol_n);
+                        tmp_x{j} = st3dGetFeature(tmp_im,[tmp_ind1 tmp_ind2],opts);
+                        tmp_y{j} = [uint8(tmp_center(tmp_center(:,1)==i & tmp_center(:,2)==j,4)); (1+opts.nClusters)*ones(numel(tmp_ind2),1,'uint8')];
+                        %tmp_y{j} = logical([ones(numel(tmp_ind1),1); zeros(numel(tmp_ind2),1)]);
                     end
                 end
             end

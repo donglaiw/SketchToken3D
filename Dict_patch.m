@@ -54,6 +54,10 @@ clusters.clusterId = cell2mat(mat_y);
 %{
 aa=histc(label,1:ncluster)
 [a,b]=max(aa);
-bb= reshape(center(b,:),[opts.nCells,opts.nCells,opts.nChns,opts.tsz-1]);
+aa= sum(abs(clusters.clusters),2);
+[a,b]=min(aa);
+opts.tsz=5;opts.nChns=14;opts.nCells=5;
+bb= reshape(clusters.clusters(b,:),[opts.nCells,opts.nCells,opts.nChns,opts.tsz-1]);
 for i=1:4;subplot(2,2,i);imagesc(bb(:,:,1,i));colorbar;end
+
 %}

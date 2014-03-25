@@ -4,25 +4,47 @@ param_init
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % A. Train 2D boundary detector
 % A.1 opts
-if exist('data/opt_3d.mat','file')
-    load data/opt_3d.mat
+tid = 1;
+ntree = 5;
+switch tid
+case 1
+    % segtrack train: 2-class
+    name = 'segt.mat';
+    patch_id = 1;
+    feat_id = 2;
+    D_name = D_STRACK;
+    num_pervol = 200;
+    num_pervol_n = 160;
+    nClusters = 2;
+case 2
+    % berk train: 101-class
+    name = 'berk1.mat';
+    patch_id = 4;
+    feat_id = 2;
+    D_name = D_BERK1;
+    num_pervol = 200;
+    num_pervol_n = 160;
+    nClusters = 100;
+end
+if exist(['data/opt_' opt_name],'file')
+    load(['data/opt_' opt_name])
     ntree = opts.nTrees;
 else
-    ntree = 3;
-opts=struct('DD',D_STRACK,...
-            'loadmat',[D_ST3D 'data/segtrack'],...
-            'patch_id',1,...
-            'feat_id',2,...
+opts=struct('DD',D_name,...
+            'loadmat',[D_ST3D 'data/gt_' name],...
+            'patch_id',patch_id,...
+            'feat_id',feat_id,...
             'radius',17,...
             'pratio',0.3,...
             'tsz',  5,...
             'tstep', 2,...
-            'num_pervol',100,...
+            'num_pervol',num_pervol,...
+            'num_pervol_n',num_pervol_n,...
             'ntChns',2,...
-            'nClusters',2,...
+            'nClusters',nClusters,...
             'nTrees',ntree,...
-            'modelFnm','model3D');
-    save data/opt_3d opts 
+            'modelFnm',['model_' name]);
+    save(['data/' opt_name],'opts')
 end
 % A.2 parallel train N trees
 do_local=1;
@@ -46,7 +68,7 @@ fns(1:2)=[];
 tsz_h = (model.opts.tsz-1)/2;
 tsz_step = 1;% number of frames in between 
 st3d = cell(1,numel(fns));
-parfor i=1:numel(fns)
+parfor i=1:1%numel(fns)
     im = uint8(U_fns2ims([DD 'Occ/CMU/clips/' fns(i).name '/img_']));
     fn  = dir([DD 'Occ/CMU/clips/' fns(i).name '/ground_truth*']);
     id = str2double(fn.name(find(fn.name=='_',1,'last')+1:end-4))+1;

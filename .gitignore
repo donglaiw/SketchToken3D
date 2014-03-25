@@ -1,4 +1,4 @@
 *.mat
-param_init.m
 .gitignore
+param_init.m
 *~

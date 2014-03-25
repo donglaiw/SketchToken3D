@@ -23,7 +23,7 @@ function ftrs = st3dComputeSimFtrs( mat_x, opts )
             inds = ((1:n)-(n+1)/2)*opts.cellStep+opts.radius+1;    
             chns=reshape(chns,opts.patchSiz,opts.patchSiz,nChns*m);        
             chns=convBox(chns,opts.cellRad);    
-            chns=reshape(chns(inds,inds,:,:),n*n,nChns,m);
+            chns=reshape(chns(inds,inds,:),n*n,nChns,m);
             tmp_chns = tmp_chns+ chns;
         end
         st_chns(:,cc,:,:) = tmp_chns;

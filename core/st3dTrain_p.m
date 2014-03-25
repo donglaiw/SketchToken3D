@@ -8,33 +8,17 @@ case 2
     load ../data/opt_3d opts 
 end
 
-addpath(genpath('/data/vision/billf/stereo-vision/VisionLib/Donglai/Util/io'))
-addpath(genpath('/data/vision/billf/stereo-vision/VisionLib/Piotr'))
-dfs={'DD',[],'loadmat',[],'pratio',0,'tsz',0,'tstep',0,'num_pervol',0,'ntChns',2,...
-    'nClusters',150, 'nTrees',25, 'radius',17, 'nPos',1000, 'nNeg',800,...
-    'negDist',2, 'minCount',4, 'nCells',5, 'normRad',5, 'normConst',0.01, ...
-    'nOrients',[4 4 0], 'sigmas',[0 1.5 5], 'chnsSmooth',2, 'fracFtrs',1, ...
-    'seed',1, 'modelDir','../models/', 'modelFnm','model', ...
-    'clusterFnm','clusters.mat', 'bsdsDir','BSR/BSDS500/data/'};
-opts = getPrmDflt(opts,dfs,1);
+addpath(../);param_init;
+addpath(genpath([D_VLIB 'Util/io']))
+addpath(genpath([D_VLIB '../Piotr']))
+
+opts= st3dMakeOpts(opts);
 nTrees=opts.nTrees;
-nCells=opts.nCells;
-nChns = size(stChns(ones(2,2,3),opts),3);
-opts.nChns=nChns;
-opts.patchSiz=2*opts.radius + 1;
-psz = opts.patchSiz;
-
-%opts.nChnFtrs = psz*psz*nChns;
-%opts.nSimFtrs = (nCells*nCells)*(nCells*nCells-1)/2*nChns;
-%opts.nTotFtrs = opts.nChnFtrs + opts.nSimFtrs;
-
-opts.cellRad = round(psz/nCells/2);
-tmp=opts.cellRad*2+1;
-opts.cellStep = tmp-ceil((nCells*tmp-psz)/(nCells-1));
 
 stream=RandStream('mrg32k3a','Seed',opts.seed);
+
 % train nTrees random trees (can be trained with parfor if enough memory)
-    st3dTrainTree( opts, stream, id );
+st3dTrainTree( opts, stream, id );
 end
 
 function st3dTrainTree( opts, stream, treeInd )
@@ -52,90 +36,10 @@ fprintf('\n-------------------------------------------\n');
 fprintf('Training tree %d of %d\n',treeInd,opts.nTrees);
 tStart=clock;
 
-% get data
-load(opts.loadmat)
-if ~exist('Is','var')
-    Is = [];
-end
-psz_h = opts.radius;
-psz = 2*psz_h+1;
-tstep = opts.tstep;
-tsz = opts.tsz;
-len = cumsum([0 arrayfun(@(x) floor((size(gts{x},3)-tsz+1)/tstep),1:numel(gts))]);
-mat_x = cell(len(end),1);
-mat_x2 = cell(len(end),1);
-mat_y = cell(len(end),1);
-
-DD = opts.DD;
-fns=[];
-num_v= numel(Is)
-if isempty(Is)
-    fns = dir(DD);
-    fns(1:2)=[];
-    num_v= numel(fns);
-end
-
-for i=1:num_v
-    fprintf('   Video %d / %d\n',i,num_v);
-    tmp_x = cell(1,len(i+1)-len(i));
-    tmp_x2 = cell(1,len(i+1)-len(i));
-    tmp_y = cell(1,len(i+1)-len(i));
-    tmp_fn = [];
-    if isempty(Is) 
-        tmp_fn = U_getims([DD fns(i).name '/']);
-    end
-    sz = size(gts{i});    
-    tmp_gts = single(gts{i});
-    
-    
-    ind1 =[]; ind2=[]; tmp_im=[];
-    p_ind = reshape(bsxfun(@plus,(-psz_h:psz_h),sz(1)*(-psz_h:psz_h)'),[],1);
-    for j = 1:numel(tmp_x)
-    %parfor j = 1:numel(tmp_x)
-        tcen = (j-1)*tstep+(1+tsz)/2;
-        tmp_dist = U_addnan(single(bwdist(tmp_gts(:,:,tcen)>0)),psz_h);
-        
-        % sample pos:
-        ind1 = find(tmp_dist<2)';
-        tmp_ind1 = randsample(ind1,min(floor(opts.pratio*numel(ind1)),opts.num_pervol));
-        % sample neg:
-        ind2 = find(tmp_dist>psz)';
-        tmp_ind2 = randsample(ind2,opts.num_pervol);
-        
-        
-        num_p = numel(tmp_ind1)+numel(tmp_ind2);
-        tmp_x{j} = zeros(psz,psz,num_p,opts.nChns,tsz,'single');
-        cc = 1;
-        % 2d edge
-        for k= (j-1)*tstep+(1:tsz)
-            if isempty(Is)
-                tmp_im = imread([DD fns(i).name '/' tmp_fn(k).name]);
-            else
-                tmp_im = Is{i};
-            end
-            %tmp_im = imPad(tmp_im,psz_h,'symmetric');
-            chns = reshape(stChns(tmp_im,opts),prod(sz(1:2)),[]);
-            tmp_x{j}(:,:,:,:,cc) = ...
-                reshape(chns(reshape(bsxfun(@plus,[tmp_ind1,tmp_ind2],p_ind),1,[]),:),psz,psz,num_p,[]);
-            cc= cc+1;
-        end
-        % 35*35*14*tsz*num
-        tmp_x{j} = permute(tmp_x{j},[1 2 4 5 3]);
-        % 3d self-similarity: texture + flow
-        tmp_x2{j} = st3dComputeSimFtrs(tmp_x{j},opts);
-        tmp_x{j} = reshape(tmp_x{j},[],num_p)';
-        tmp_y{j} = [ones(numel(tmp_ind1),1,'uint8'); 2*ones(numel(tmp_ind2),1,'uint8')];
-        %tmp_y{j} = logical([ones(numel(tmp_ind1),1); zeros(numel(tmp_ind2),1)]);
-    end
-    
-    mat_x(len(i)+1:len(i+1)) = tmp_x;
-    mat_x2(len(i)+1:len(i+1)) = tmp_x2;
-    mat_y(len(i)+1:len(i+1)) = tmp_y;
-end
-
+[mat_x,mat_y] = st3dGetPatch(opts);
 % train sketch token classifier (random decision tree)
 %save -v7.3 ho mat_x mat_x2 mat_y
-tree=forestTrain([cell2mat(mat_x) cell2mat(mat_x2)],cell2mat(mat_y),'maxDepth',999);
+tree=forestTrain(mat_x,mat_y,'maxDepth',999);
 %tree.fids(tree.child>0) = fids(tree.fids(tree.child>0)+1)-1;
 tree=pruneTree(tree,opts.minCount); %#ok<NASGU>
 if ~exist(treeDir,'dir')

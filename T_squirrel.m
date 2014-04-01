@@ -1,52 +1,37 @@
 param_init
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% A. Train 2D boundary detector
-% A.1 opts
-tid = 4;
-ntree = 20;
+id1 = 19;
+id2 = 20;
+%{
+addpath([D_VLIB 'Util/flow'])
+fns = dir([D_CMU 'clips']);
+fns(1:2)=[];
+tsz = 5;
+tsz_h = (tsz-1)/2;
+tsz_step = 1;% number of frames in between 
+    opts.tsz = tsz;
+    im = uint8(U_fns2ims([D_CMU 'clips/' fns(id1).name '/img_']));
+    fn  = dir([D_CMU 'clips/' fns(id1).name '/ground_truth*']);
+    id = str2double(fn.name(find(fn.name=='_',1,'last')+1:end-4))+1;
+    I0 = cell(1,tsz);for i=1:tsz;I0{i}=im(:,:,:,id-(tsz_h+1)*tsz_step+i*tsz_step);end
+    of = U_getOF(I0,opts);
+    for i=1:4;subplot(2,2,i),imagesc(flowToColor(of{i}));end
+%}
+ntree = 1;
+tid = 1;
 switch tid
 case 1
     % segtrack train: 2-class
-    name = 'segt.mat';
-    patch_id = 1;
-    feat_id = 2;
-    D_name = D_STRACK;
-    num_pervol = 200;
-    num_pervol_n = 200;opt_id=2;
-    nClusters = 2;
-    tscale = 1;
-case 2
-    % berk train: 2-class
-    name = 'berk1.mat';
+    did= 3;
+    name = 'cmu.mat';
     patch_id = 2;
-    feat_id = 2;
-    D_name = D_BERK1;
-    num_pervol = 200;
-    num_pervol_n = 160;opt_id=3;
-    num_pervol_n = 400;opt_id=4;
+    D_name = [D_CMU 'clips/'];
+    num_pervol = 2000;
+    num_pervol_n = 4000;
+    feat_id = 4;opt_id=8;
+    %feat_id = 5;opt_id=7;
     nClusters = 1;
     tscale = 1;
-case 3
-    % berk train: 101-class
-    name = 'berk1.mat';
-    patch_id = 4;
-    feat_id = 2;
-    D_name = D_BERK1;
-    num_pervol = 200;
-    num_pervol_n = 160;opt_id=5;
-    nClusters = 100;
-    tscale = [1 2 4];
-case 4
-    % berk train: 2-class
-    name = 'berk1.mat';
-    patch_id = 2;
-    D_name = D_BERK1;
-    num_pervol = 200;
-    num_pervol_n = 400;
-    %feat_id = 4;opt_id=6;
-    feat_id = 5;opt_id=7;
-    nClusters = 1;
-    tscale = 1;
+    ids = id1;
 end
 sname = sprintf([name(1:end-4) '_%d_%d_%d_%d_%d_%d'],nClusters,num_pervol,num_pervol_n,numel(tscale),patch_id,feat_id);
 if exist(['data/opt_' sname],'file')
@@ -54,7 +39,9 @@ if exist(['data/opt_' sname],'file')
     ntree = opts.nTrees;
 else
 opts=struct('DD',D_name,...
+            'did',did,...
             'loadmat',[D_ST3D 'data/gt_' name],...
+            'im_ids',ids,...
             'patch_id',patch_id,...
             'feat_id',feat_id,...
             'radius',17,...
@@ -72,12 +59,8 @@ opts=struct('DD',D_name,...
     save(['data/opt_' sname],'opts')
 end
 
-if opts.nClusters>1
-    % need to learn dictionary
-    Dict_patch(opts)
-end
 % A.2 parallel train N trees
-do_local=0;
+do_local=1;
 if do_local
     %try;matlabpool;end;
     cd core
@@ -93,17 +76,14 @@ cd core;st3dTrain(opts);cd ..
 % B. test boundary detection
 addpath('lib/IDM')
 load(['models/forest/' opts.modelFnm '_' num2str(ntree)])
-DD='/data/vision/billf/stereo-vision/Data/';
-fns = dir([DD 'Occ/CMU/clips']);
+
+fns = dir([D_CMU 'clips']);
 fns(1:2)=[];
-tsz_h = (model.opts.tsz-1)/2;
+tsz = 5;
+tsz_h = (tsz-1)/2;
 tsz_step = 1;% number of frames in between 
-st3d = cell(1,numel(fns));
-im=[];
-for i=1:numel(fns)
-    im = uint8(U_fns2ims([DD 'Occ/CMU/clips/' fns(i).name '/img_']));
-    fn  = dir([DD 'Occ/CMU/clips/' fns(i).name '/ground_truth*']);
-    id = str2double(fn.name(find(fn.name=='_',1,'last')+1:end-4))+1;
+    im = uint8(U_fns2ims([D_CMU 'clips/' fns(id2).name '/img_']));
+    id = U_getTcen([D_CMU 'clips/' fns(id2).name]);
     %try
         tmp_st = st3dDetect( im(:,:,:,id+(-tsz_h*tsz_step:tsz_step:tsz_h*tsz_step)), model );
         st3d{i} = 1-tmp_st(:,:,end);

@@ -34,16 +34,29 @@ function S = st3dDetect( Is, model, stride, rescale_back )
     opts=model.opts;
     %opts.inputColorChannel = 'luv';
     %opts.inputColorChannel = 'rgb';
-    chns = zeros([2*opts.radius+sizeOrig(1:2) opts.nChns opts.tsz],'single');
+    I0 = cell(1,opts.tsz);
     for i=1:opts.tsz
-        I = imPad(Is(:,:,:,i),opts.radius,'symmetric');
-        chns(:,:,:,i) = stChns( I, opts );
+        I0{i} = imPad(Is(:,:,:,i),opts.radius,'symmetric');
     end
-    sz = size(chns);
-    [cids1,cids2] = computeCids3d(sz,opts);
-    
-    if opts.nCells
-        chnsSs = chns;
+    if sum([0:3]==opts.feat_id)>0
+        % only the 2D image feature
+        opts.feat_id = 0;
+    elseif sum([4 5]==opts.feat_id)>0
+        % add channels
+        of = U_getOF(I0,opts);
+        of{numel(of)+1} = zeros(size(of{1}),'single');
+        for i=1:opts.tsz
+            I0{i} = cat(3,I0{i},of{i});
+        end
+    end
+    sz = size(I0{1});
+    chns = st3dGetFeature(I0,[],opts);
+    chns = reshape(chns,sz(1),sz(2),[]);
+    sz = [sz(1:2) size(chns,3)];
+    [cids1,cids2] = computeCids3d(sz,opts);    
+
+    if opts.nCells && opts.feat_id~=4
+        chnsSs = reshape(chns(:,:,1:opts.nChns*opts.tsz),[sz(1:2) opts.nChns opts.tsz]);
         for i=1:opts.tsz
             chnsSs(:,:,:,i) = convBox(chns(:,:,:,i),opts.cellRad);
         end
@@ -55,7 +68,8 @@ function S = st3dDetect( Is, model, stride, rescale_back )
     end
 
     % run forest on image
-    nChnFtrs=opts.patchSiz*opts.patchSiz*opts.nChns*opts.tsz;
+    nChnFtrs=opts.patchSiz*opts.patchSiz*sz(3);
+    save db2
     S = stDetectMex( chns, chnsSs, model.thrs, model.fids, model.child, ...
       model.distr, cids1, cids2, stride, opts.radius, nChnFtrs );
 
@@ -80,13 +94,12 @@ function [cids1,cids2] = computeCids3d( siz, opts )
     % construct cids lookup for standard features
     radius=opts.radius;
     s=opts.patchSiz;
-    nChns=opts.nChns;
+    nChns=siz(3);
     tsz=opts.tsz;
     
     
     ht=siz(1);
     wd=siz(2);
-    assert(siz(3)==nChns);
     assert(numel(siz)==3 || siz(4)==tsz);
     
     nChnFtrs=s*s*nChns;
@@ -99,7 +112,12 @@ function [cids1,cids2] = computeCids3d( siz, opts )
     
     % temporal jumps    
     cids = reshape(bsxfun(@plus, cids', uint32((0:tsz-1)*ht*wd*nChns)),1,[]);
-    
+   
+    if opts.feat_id==4 
+        cids1 = cids;
+        cids2 = cids;
+        return
+    end
     % construct cids1/cids2 lookup for self-similarity features
     n=opts.nCells;
     m=opts.cellStep;    

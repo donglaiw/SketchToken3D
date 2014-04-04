@@ -31,7 +31,7 @@ function ftrs = st3dComputeSimFtrs( mat_x, opts )
     end
             
     st_chns = reshape(st_chns,n*n*ntf,nChns*m);
-      
+    n,ntf  
     n_combo = (n*n*ntf*(n*n*ntf-1)/2);
     ftrs=zeros(n_combo,nChns*m,'single');
     %{

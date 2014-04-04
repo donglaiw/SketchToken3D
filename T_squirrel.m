@@ -16,12 +16,12 @@ tsz_step = 1;% number of frames in between
     of = U_getOF(I0,opts);
     for i=1:4;subplot(2,2,i),imagesc(flowToColor(of{i}));end
 %}
-ntree = 1;
+ntree = 10;
 tid = 1;
 switch tid
 case 1
-    % segtrack train: 2-class
-    did= 3;
+    % cmu train: 2-class
+    did= 2;
     name = 'cmu.mat';
     patch_id = 2;
     D_name = [D_CMU 'clips/'];
@@ -74,7 +74,6 @@ end
 cd core;st3dTrain(opts);cd ..
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % B. test boundary detection
-addpath('lib/IDM')
 load(['models/forest/' opts.modelFnm '_' num2str(ntree)])
 
 fns = dir([D_CMU 'clips']);
@@ -83,12 +82,11 @@ tsz = 5;
 tsz_h = (tsz-1)/2;
 tsz_step = 1;% number of frames in between 
     im = uint8(U_fns2ims([D_CMU 'clips/' fns(id2).name '/img_']));
-    id = U_getTcen([D_CMU 'clips/' fns(id2).name]);
+    id = U_getTcen([D_CMU 'clips/' fns(id2).name],2);
     %try
         tmp_st = st3dDetect( im(:,:,:,id+(-tsz_h*tsz_step:tsz_step:tsz_h*tsz_step)), model );
-        st3d{i} = 1-tmp_st(:,:,end);
+        st3d = 1-tmp_st(:,:,end);
     %end
-end
 
 for i=1:numel(fns)
     try

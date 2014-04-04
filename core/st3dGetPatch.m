@@ -126,8 +126,6 @@ switch opts.patch_id
                         end
                         cc = cc + 1;
                     end
-                    tmp_im
-                    size(tmp_gts)
                     if opts.patch_id ==2
                         % sample patch
                         % sample pos:

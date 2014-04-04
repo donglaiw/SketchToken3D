@@ -4,7 +4,7 @@ addpath('../');param_init;
 opts= st3dMakeOpts(opts);
 
 forestDir = [opts.modelDir '/forest/'];
-forestFn = [forestDir opts.modelFnm '_' num2str(opts.nTrees)];
+forestFn = [forestDir opts.modelFnm '_' num2str(opts.nTrees)]
 if exist([forestFn '.mat'], 'file')
     load([forestFn '.mat']);
     return;

@@ -14,7 +14,7 @@ p_ind = reshape(bsxfun(@plus,(-psz_h:psz_h),sz(1)*(-psz_h:psz_h)'),[],1);
 % assume color image
 feat = [];
 switch opts.feat_id
-    case {0,1,2,3,4,5}
+    case {-1,0,1,2,3,4,5}
         tmp_x = zeros(psz,psz,num_p,opts.nChns,tsz,'single');
         % gradient + self-similarity
         for cc = 1:numel(tmp_im)
@@ -35,9 +35,12 @@ switch opts.feat_id
             % 3d self-similarity: texture + flow
             if opts.feat_id<=2
                 tmp_x2 = st3dComputeSimFtrs(tmp_x,opts);
-                if opts.feat_id==1
+                switch opts.feat_id
+                case -1
+                    feat = [reshape(tmp_x(:,:,:,(1+tsz)/2,:),[],num_p)' tmp_x2];
+                case 1
                     feat = tmp_x2;
-                else
+                case 2
                     feat = [reshape(tmp_x,[],num_p)' tmp_x2];
                 end
             elseif opts.feat_id==3

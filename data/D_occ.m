@@ -1,5 +1,3 @@
-addpath('/home/Stephen/Desktop/VisionLib/Donglai/Util/io')
-
 did = 0;
 % 0. data structure
 switch did
@@ -14,7 +12,7 @@ switch did
             sz = size(imread([D_CMU 'clips/' fns(i).name '/' tmp_fn(1).name]));
             gts{i}=imresize(tmp==255,sz(1:2),'nearest');
         end
-        save gt_cmu gts %gts2
+        save data/gt_cmu gts %gts2
     case 0
         DD='/home/Stephen/Desktop/Data/Occ/Berk/train/';
         fns = dir(DD);

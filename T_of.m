@@ -26,18 +26,20 @@ if ~exist([DD '../feat/of_' fns(i).name '.mat'],'file')
     % 1 dim first
     im = uint8(U_fns2ims([DD fns(i).name '/'],tmp_fn(tcen+(-2:2))));
     of = cell(1,4);
+    dist = cell(1,4);
     for tstep=setdiff(1:5,3)
-        z = IDM_map(double(rgb2gray(im(:,:,:,3))),double(rgb2gray(im(:,:,:,tstep))),warp_h,psz_h,step,penalty);
+        [z,dis{cc}] = IDM_map(double(rgb2gray(im(:,:,:,3))),double(rgb2gray(im(:,:,:,tstep))),warp_h,psz_h,step,penalty);
         of{cc} = zeros([size(z) 2],'single');
         of{cc}(:,:,1) = z2x(1+z);
         of{cc}(:,:,2) = z2y(1+z);
         cc=cc+1;
     end
-    save([DD '../feat/of_' fns(i).name],'of')
+    save([DD '../feat/of_' fns(i).name],'of','dis')
 end
 %{
  PP = pwd;
- system(['./para/p_run.sh 1 2 30 "' PP '/para" "' PP '" "T_of(" ",2);"'])
+ system(['./para/p_run.sh 1 1 30 "' PP '/para" "' PP '" "T_of(" ",2);"'])
+ system(['./para/p_run.sh 1 1 40 "' PP '/para" "' PP '" "T_of(" ",1);"'])
 
  DD = '/data/vision/billf/deep-learning/data/Berk_occ/feat/';
 fns = dir([DD '*.mat']);

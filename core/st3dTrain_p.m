@@ -3,6 +3,8 @@ if isstruct(opt_id)
     opts = opt_id;
 else
     switch opt_id
+    case -1
+        load ../data/opt_berk1_1_200_400_1_2_-1 opts 
     case 1
         % 2d boundary
         load ../data/opt_2d opts 

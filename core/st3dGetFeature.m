@@ -55,20 +55,10 @@ switch opts.feat_id
                 % of boundary
                 % max-pool motion
                 of = cat(3,tmp_im{1:end-1});
-                of_x = of(:,:,4:5:end);
-                of_y = of(:,:,5:5:end);
-                sz = size(of_x);
-                [~,of_idx]=max(abs(of_x),[],3);
-                [~,of_idy]=max(abs(of_y),[],3);
-                tmp_ofx = zeros(sz(1:2),'single');
-                tmp_ofy = zeros(sz(1:2),'single');
-                for i=1:size(of_x,3)
-                    tmp_of = of_x(:,:,i);
-                    tmp_ofx(of_idx==i) = tmp_of(of_idx==i);
-                    tmp_of = of_y(:,:,i);
-                    tmp_ofy(of_idy==i) = tmp_of(of_idy==i);
-                end
-                chns = reshape(stChns(cat(3,tmp_ofx,tmp_ofy),opts),prod(sz(1:2)),[]);
+                num_c = size(tmp_im{1},3);
+                of_x = of(:,:,num_c-1:num_c:end);
+                of_y = of(:,:,num_c:num_c:end);
+                chns = reshape(stChns(cat(3,U_pool(of_x,opts.pool_id),U_pool(of_y,opts.pool_id)),opts),prod(sz(1:2)),[]);
             if isempty(tmp_ind)
                 feat_of = permute(reshape(chns,psz^2,num_p,[]),[1 3 2]);
             else
@@ -80,6 +70,50 @@ switch opts.feat_id
                     feat=[reshape(tmp_x,[],num_p)' reshape(feat_of,[],num_p)' st3dComputeSimFtrs(tmp_x,opts)];
                 end
             end
+        end
+    case {6,7,8,9}
+        % 2D st + of
+        num_c = size(tmp_im{1},3);
+
+        st = cat(3,tmp_im{1:opts.drf});
+        st = st(:,:,1:num_c:end);
+        switch opts.feat_id
+        case {6,7,9}
+            chns = reshape(st,prod(sz(1:2)),[]);
+        case {8}
+            chns = reshape(stChns(st,opts),prod(sz(1:2)),[]);
+        end
+
+        if isempty(tmp_ind)
+            feat_st = chns';
+        else
+            feat_st = permute(reshape(chns(reshape(bsxfun(@plus,tmp_ind,p_ind),1,[]),:),psz^2,num_p,[]),[1 3 2]);
+        end
+
+        if sum([6,9] ==opts.feat_id)
+            of = cat(3,tmp_im{1:end-1});
+            of_y = of(:,:,num_c:num_c:end);
+            switch opts.of_fn
+            case {'of_idm','of_idm3'}
+                of_x = of(:,:,num_c-1:num_c:end);
+                vol = cat(3,U_pool(of_x,opts.pool_id),U_pool(of_y,opts.pool_id));
+            case 'of_idm2'
+                vol = U_pool(of_y,opts.pool_id);
+            end
+            if sum([6] ==opts.feat_id)
+                chns_of = reshape(stChns(vol,opts),prod(sz(1:2)),[]);
+            else
+                chns_of = reshape(vol,prod(sz(1:2)),[]);
+            end
+
+            if isempty(tmp_ind)
+                feat_of = permute(reshape(chns_of,psz^2,num_p,[]),[1 3 2]);
+            else
+                feat_of = permute(reshape(chns_of(reshape(bsxfun(@plus,tmp_ind,p_ind),1,[]),:),psz^2,num_p,[]),[1 3 2]);
+            end
+            feat=[reshape(feat_st,[],num_p)' reshape(feat_of,[],num_p)'];
+        else 
+            feat=[reshape(feat_st,[],num_p)'];
         end
 end
 

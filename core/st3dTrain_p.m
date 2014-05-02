@@ -2,27 +2,7 @@ function st3dTrain_p(opt_id,id)
 if isstruct(opt_id)
     opts = opt_id;
 else
-    switch opt_id
-    case -1
-        load ../data/opt_berk1_1_200_400_1_2_-1 opts 
-    case 1
-        % 2d boundary
-        load ../data/opt_2d opts 
-    case 2
-        load ../data/opt_segt opts 
-    case 3
-        load ../data/opt_model_berk1_2 opts 
-    case 4
-        load ../data/opt_berk1_1_200_400_1_2_2 opts 
-    case 5
-        load ../data/opt_berk1_100_200_160_3_4_2 opts 
-    case 6
-        load ../data/opt_berk1_1_200_400_1_2_4 opts 
-    case 7
-        load ../data/opt_berk1_1_200_400_1_2_5 opts 
-    case 8
-        load ../data/opt_cmu_1_2000_4000_1_2_4 opts 
-    end
+    load(opt_id)
 end
 addpath('../');param_init;
 addpath(genpath([D_VLIB 'Util/io']))

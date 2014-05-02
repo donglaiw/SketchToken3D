@@ -34,19 +34,33 @@ function S = st3dDetect( Is, model, stride, rescale_back )
     opts=model.opts;
     %opts.inputColorChannel = 'luv';
     %opts.inputColorChannel = 'rgb';
+
     I0 = cell(1,opts.tsz);
+    tmp_dist2 = [];
+    if sum([6 7 8 9]==opts.feat_id)>0
+        Is = U_getST([],opts);
+        tmp_dist2 = bwdist(max(cat(3,Is{:}),[],3)>opts.nbd_thres);
+        Is = cat(4,Is{:});
+    end
     for i=1:opts.tsz
         I0{i} = imPad(Is(:,:,:,i),opts.radius,'symmetric');
     end
+
     feat_oid = opts.feat_id;
     if sum([-1:3]==opts.feat_id)>0
         % only the 2D image feature
         opts.feat_id = 0;
-    elseif sum([4 5]==opts.feat_id)>0
+    elseif sum([4 5 6 9]==opts.feat_id)>0
         % add channels
         of = U_getOF(I0,opts);
-        of{numel(of)+1} = zeros(size(of{1}),'single');
-        opts.feat_id = 4;
+        for i=1:opts.tsz
+            of{i} = imPad(of{i},opts.radius,'symmetric');
+        end
+    
+        if sum([4 5]==opts.feat_id)>0
+            opts.feat_id = 4;
+        end
+
         for i=1:opts.tsz
             I0{i} = cat(3,I0{i},of{i});
         end
@@ -59,7 +73,7 @@ function S = st3dDetect( Is, model, stride, rescale_back )
     chns = reshape(chns,sz(1),sz(2),[]);
     sz = [sz(1:2) size(chns,3)];
 
-    if opts.nCells && feat_oid~=4
+    if opts.nCells && sum([4 6 7 8 9]==feat_oid)==0
         chnsSs = reshape(chns(:,:,1:opts.nChns*opts.tsz),[sz(1:2) opts.nChns opts.tsz]);
         for i=1:opts.tsz
             chnsSs(:,:,:,i) = convBox(chns(:,:,(i-1)*opts.nChns+(1:opts.nChns)),opts.cellRad);
@@ -96,6 +110,15 @@ function S = st3dDetect( Is, model, stride, rescale_back )
         end
     end
 
+    if sum([6 7 8 9]==opts.feat_id)>0
+        % apply mask
+        pos_dis = 3;
+        tmp_S = S(:,:,end);
+        tmp_S(tmp_dist2>=pos_dis) = 1;
+        S(:,:,end) = tmp_S;
+        tmp_S = ((1-S(:,:,end))./sum(S(:,:,1:end-1),3));
+        S(:,:,1:end-1) = bsxfun(@times,S(:,:,1:end-1),tmp_S);
+    end
 end
 
 % for the ease of self-similarity,
@@ -124,7 +147,7 @@ function [cids1,cids2] = computeCids3d( siz, opts )
     % temporal jumps    
     %cids = reshape(bsxfun(@plus, cids', uint32((0:tsz-1)*ht*wd*nChns)),1,[]);
    
-    if opts.feat_id==4 
+    if sum([4 6 7 8 9]==opts.feat_id) 
         cids1 = cids;
         cids2 = cids;
         return

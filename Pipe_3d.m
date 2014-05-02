@@ -2,7 +2,7 @@ param_init
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % A. Train 2D boundary detector
 % A.1 opts
-tid = -1;
+tid = 4;
 ntree = 20;
 switch tid
 case -1
@@ -56,10 +56,22 @@ case 4
     %feat_id = 4;opt_id=6;
     did = 1;
     feat_id = 5;opt_id=7;
+    feat_id = 4;opt_id=8;
+    feat_id = 6;drf=1;nbd_thres=0.1;of_fn='of_idm';opt_id=9;
+    feat_id = 6;drf=4;nbd_thres=0.4;of_fn='of_idm';opt_id=10;
+    feat_id = 6;drf=1;nbd_thres=0.4;of_fn='of_idm';opt_id=11;
+    feat_id = 6;drf=4;nbd_thres=0.1;of_fn='of_idm';opt_id=12;
+    feat_id = 7;drf=4;nbd_thres=0.1;opt_id=13;
+    feat_id = 8;drf=4;nbd_thres=0.1;opt_id=14;
+    feat_id = 6;drf=1;nbd_thres=0.1;of_fn='of_idm2';opt_id=15;
+    feat_id = 6;drf=1;nbd_thres=0.1;of_fn='of_idm3';opt_id=16;
+    feat_id = 6;drf=1;nbd_thres=0.1;of_fn='of_idm3';pool_id=3;opt_id=17;
+    feat_id = 9;drf=1;nbd_thres=0.1;of_fn='of_idm3';pool_id=3;opt_id=18;
+    feat_id = 9;drf=1;nbd_thres=0.1;of_fn='of_idm3';pool_id=4;opt_id=19;
     nClusters = 1;
     tscale = 1;
 end
-sname = sprintf([name(1:end-4) '_%d_%d_%d_%d_%d_%d'],nClusters,num_pervol,num_pervol_n,numel(tscale),patch_id,feat_id);
+sname = sprintf([name(1:end-4) '_%d_%d_%d_%d_%d_%d_%d'],nClusters,num_pervol,num_pervol_n,numel(tscale),patch_id,feat_id,opt_id);
 if exist(['data/opt_' sname],'file')
     load(['data/opt_' sname])
     ntree = opts.nTrees;
@@ -79,6 +91,10 @@ opts=struct('DD',D_name,...
             'ntChns',2,...
             'nClusters',nClusters,...
             'nTrees',ntree,...
+            'drf',drf,...
+            'of_fn',of_fn,...
+            'pool_id',pool_id,...
+            'nbd_thres',nbd_thres,...
             'clusterFnm',[D_ST3D 'data/cluster_' num2str(nClusters) '_' name],...
             'modelFnm',['model_' sname]);
     save(['data/opt_' sname],'opts')
@@ -89,52 +105,79 @@ if opts.nClusters>1
     Dict_patch(opts)
 end
 % A.2 parallel train N trees
-do_local=0;
-if do_local
-    %try;matlabpool;end;
-    cd core
-    parfor id=1:ntree;st3dTrain_p(opts,id);end
-    cd ../
-else
-    PP=pwd;
-    system(['./para/p_run.sh 1 1 ' num2str(ntree) ' "' PP '/para" "' PP '/core" "st3dTrain_p(' num2str(opt_id) '," ");"'])
+if ~exist(['models/forest/' opts.modelFnm '_' num2str(ntree) '.mat'])
+    do_local=0;
+    if do_local
+        %try;matlabpool;end;
+        cd core
+        for id=1:ntree;st3dTrain_p(opts,id);end
+        cd ../
+    else
+        PP=pwd;
+        %system(['./para/p_run.sh 1 1 ' num2str(ntree) ' "' PP '/para" "' PP '/core" "st3dTrain_p(''''../data/opt_' sname '''''," ");"'])
+        for i=1:ntree
+            if ~exist(['models/tree/' opts.modelFnm sprintf('_tree%03d.mat',i)],'file')
+                system(['./para/p_run.sh 1 ' num2str(i) ' ' num2str(i) ' "' PP '/para" "' PP '/core" "st3dTrain_p(''''../data/opt_' sname '''''," ");"'])
+            end
+        end
+        p_wait(['models/tree/' opts.modelFnm '_tree*'],30,ntree,300,1);
+    end
+    % A.3 form the forest
+    cd core;st3dTrain(opts);cd ..
 end
-error(1)
-% A.3 form the forest
-cd core;st3dTrain(opts);cd ..
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % B. test boundary detection
+% model III:
+% models/forest/model_berk1_1_200_400_1_2_5_20.mat
 load(['models/forest/' opts.modelFnm '_' num2str(ntree)])
-DD='/data/vision/billf/stereo-vision/Data/';
-fns = dir([DD 'Occ/CMU/clips']);
-fns(1:2)=[];
 tsz_h = (model.opts.tsz-1)/2;
 tsz_step = 1;% number of frames in between 
+
+
+did=2;
+model.opts.did=did;
+im_pre='im';
+switch did
+case 1
+% berk
+DD=D_BERK1;
+model.opts.DD=D_BERK1;
+case 2
+% cmu
+DD=D_CMU;
+flo_pre = 'CMU_';
+model.opts.DD=D_CMU;
+end
+
+fns = dir(DD);fns(1:2)=[];
 st3d = cell(1,numel(fns));
 im=[];
 for i=1:numel(fns)
-    im = uint8(U_fns2ims([DD 'Occ/CMU/clips/' fns(i).name '/img_']));
-    fn  = dir([DD 'Occ/CMU/clips/' fns(i).name '/ground_truth*']);
-    id = str2double(fn.name(find(fn.name=='_',1,'last')+1:end-4))+1;
+    im = uint8(U_fns2ims([DD fns(i).name '/' im_pre]));
+    id = U_getTcen([DD fns(i).name '/'],did);
+    model.opts.flo_name = [flo_pre fns(i).name];
     %try
         tmp_st = st3dDetect( im(:,:,:,id+(-tsz_h*tsz_step:tsz_step:tsz_h*tsz_step)), model );
         st3d{i} = 1-tmp_st(:,:,end);
     %end
 end
-save(['pb_' sname],'st3d')
+save([num2str(did) 'pb_' sname],'st3d')
+
+nn=['berk1_stof' num2str(opt_id) '/'];
+mkdir(nn)
 for i=1:numel(fns)
     try
         if tsz_step==1
-             imwrite(stToEdges( 1-st3d{i}, 1 ),['st3d_' fns(i).name '.png'])
+             imwrite(stToEdges( 1-st3d{i}, 1 ),[nn 'st3d_' fns(i).name '.png'])
         else
-             imwrite(stToEdges( 1-st3d{i}, 1 ),['st3d2_' fns(i).name '.png'])
+             imwrite(stToEdges( 1-st3d{i}, 1 ),[nn 'st3d2_' fns(i).name '.png'])
         end
     end
 end
 
-
+%{
 load data/gt_cmu
-thresh = 0.3:0.1:0.8;
+thresh = 0.1:0.1:0.9;
 y=zeros(1,numel(gts));
 cc=zeros(numel(gts),numel(thresh),4);
 for id=1:numel(gts)
@@ -142,4 +185,5 @@ id
 [y(id),cc(id,:,:)] = U_occ(st3d{id},gts(id),thresh);
 end
 save(['eval_' sname],'y','cc')
-U_fmax({cc},1);
+U_fmax({cc},1)
+%}

@@ -1,8 +1,10 @@
 param_init
 
 
+
 fns = dir(D_CMU);fns(1:2)=[];
 
+<<<<<<< HEAD
 for id=1:30;
 
 load([D_CMU '../phase/CMU_' fns(id).name '_phase'])
@@ -28,6 +30,7 @@ end
 end
 
 arrayfun(@(x) mean(mean(phase_scale2_orient135(:,:,x))),1:5)
+id=13;
 
 
 

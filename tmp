@@ -1,0 +1,46 @@
+% temporary script
+
+
+fn=dir('*.mat');
+for i=1:numel(fn)
+movefile(fn(i).name,['BERK1' fn(i).name(3:end)]);
+end
+
+
+
+for opt_id=9:12
+    sname = sprintf([name(1:end-4) '_%d_%d_%d_%d_%d_%d_%d'],nClusters,num_pervol,num_pervol_n,numel(tscale),patch_id,feat_id,opt_id);
+    load(['data/opt_' sname])
+    ntree = opts.nTrees;
+    load(['models/forest/' opts.modelFnm '_' num2str(ntree)])
+did=2;
+model.opts.did=did;
+im_pre='im';
+switch did
+case 1
+% berk
+DD=D_BERK1;
+model.opts.DD=D_BERK1;
+case 2
+% cmu
+DD=D_CMU;
+flo_pre = 'CMU_';
+model.opts.DD=D_CMU;
+end
+    for i=1:numel(fns)
+        id = U_getTcen([DD fns(i).name '/'],did);
+        model.opts.flo_name = [flo_pre fns(i).name];
+            Is = U_getST([],model.opts);
+            tmp_dist2 = bwdist(max(cat(3,Is{:}),[],3)>model.opts.nbd_thres);
+            S= cat(3, st3d{i},1-st3d{i});
+            pos_dis = 3;
+            tmp_S = S(:,:,end);
+            tmp_S(tmp_dist2>=pos_dis) = 1;
+            S(:,:,end) = tmp_S;
+            tmp_S = ((1-S(:,:,end))./sum(S(:,:,1:end-1),3));
+            S(:,:,1:end-1) = bsxfun(@times,S(:,:,1:end-1),tmp_S);
+            st3d{i} = 1 - S(:,:,end);
+    end
+    save([num2str(did) 'pb_' sname],'st3d')
+end
+

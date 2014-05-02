@@ -1,8 +1,18 @@
-addpath('/home/Stephen/Desktop/VisionLib/Donglai/Util/io')
-
 did = 0;
 % 0. data structure
 switch did
+    case 2
+        fns = dir([D_CMU 'clips/']);
+        fns(1:2)=[];
+        gts = cell(1,numel(fns));
+        for i=1:numel(fns)
+            fn  = dir([D_CMU 'clips/' fns(i).name '/ground_truth*']);
+            tmp=imread([D_CMU 'clips/' fns(i).name '/' fn(1).name]);
+            tmp_fn = U_getims([D_CMU 'clips/' fns(i).name '/']);
+            sz = size(imread([D_CMU 'clips/' fns(i).name '/' tmp_fn(1).name]));
+            gts{i}=imresize(tmp==255,sz(1:2),'nearest');
+        end
+        save data/gt_cmu gts %gts2
     case 0
         DD='/home/Stephen/Desktop/Data/Occ/Berk/train/';
         fns = dir(DD);

@@ -1,12 +1,10 @@
 function st3dTrain(opts)
 addpath('../');param_init;
-addpath(genpath([D_VLIB 'Util/io']))
-addpath(genpath([D_VLIB '../Piotr']))
 
 opts= st3dMakeOpts(opts);
 
 forestDir = [opts.modelDir '/forest/'];
-forestFn = [forestDir opts.modelFnm];
+forestFn = [forestDir opts.modelFnm '_' num2str(opts.nTrees)]
 if exist([forestFn '.mat'], 'file')
     load([forestFn '.mat']);
     return;

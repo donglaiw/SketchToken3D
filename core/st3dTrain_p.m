@@ -1,16 +1,29 @@
 function st3dTrain_p(opt_id,id)
-switch opt_id
-case 1
-    % 2d boundary
-    load ../data/opt_2d opts 
-case 2
-    % i3d boundary
-    load ../data/opt_3d opts 
-case 3
-    % i3d boundary
-    load ../data/opt_berk1 opts 
+if isstruct(opt_id)
+    opts = opt_id;
+else
+    switch opt_id
+    case -1
+        load ../data/opt_berk1_1_200_400_1_2_-1 opts 
+    case 1
+        % 2d boundary
+        load ../data/opt_2d opts 
+    case 2
+        load ../data/opt_segt opts 
+    case 3
+        load ../data/opt_model_berk1_2 opts 
+    case 4
+        load ../data/opt_berk1_1_200_400_1_2_2 opts 
+    case 5
+        load ../data/opt_berk1_100_200_160_3_4_2 opts 
+    case 6
+        load ../data/opt_berk1_1_200_400_1_2_4 opts 
+    case 7
+        load ../data/opt_berk1_1_200_400_1_2_5 opts 
+    case 8
+        load ../data/opt_cmu_1_2000_4000_1_2_4 opts 
+    end
 end
-
 addpath('../');param_init;
 addpath(genpath([D_VLIB 'Util/io']))
 addpath(genpath([D_VLIB '../Piotr']))
@@ -38,7 +51,6 @@ end
 fprintf('\n-------------------------------------------\n');
 fprintf('Training tree %d of %d\n',treeInd,opts.nTrees);
 tStart=clock;
-
 [mat_x,mat_y] = st3dGetPatch(opts);
 % train sketch token classifier (random decision tree)
 %save -v7.3 ho mat_x mat_x2 mat_y

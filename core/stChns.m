@@ -22,10 +22,12 @@ function chns = stChns( I, opts )
 
     % extract gradient magnitude and histogram channels
     I0 = I;
-    if isfield(opts, 'inputColorChannel') && strcmp(opts.inputColorChannel, 'luv')    
-        I = rgbConvert(I,'orig');
-    else
-        I = rgbConvert(I,'luv');
+    if size(I,3)==3
+        if isfield(opts, 'inputColorChannel') && strcmp(opts.inputColorChannel, 'luv')    
+            I = rgbConvert(I,'orig');
+        else
+            I = rgbConvert(I,'luv');
+        end
     end
     chns=cell(1,1000);
     k=1;

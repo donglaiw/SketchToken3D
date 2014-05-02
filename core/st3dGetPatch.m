@@ -4,6 +4,7 @@ load(opts.loadmat)
 
 psz_h = opts.radius;
 psz = 2*psz_h+1;
+neg_dis =3;
 
 switch opts.patch_id
     case 0
@@ -52,7 +53,7 @@ switch opts.patch_id
                 ind1 = find(tmp_dist<2)';
                 tmp_ind1 = randsample(ind1,min(floor(opts.pratio*numel(ind1)),opts.num_pervol));
                 % sample neg:
-                ind2 = find(tmp_dist>psz)';
+                ind2 = find(tmp_dist>neg_dis)';
                 tmp_ind2 = randsample(ind2,opts.num_pervol);
                 cc = 1;
                 % 2d edge
@@ -76,11 +77,14 @@ switch opts.patch_id
         DD = opts.DD;
         fns = dir(DD);
         fns(1:2)=[];
+        if ~isempty(opts.im_ids)
+            fns =fns(opts.im_ids);
+            gts = gts(opts.im_ids);
+        end
         num_v= numel(fns);
         len = cumsum([0 numel(tscale)*ones(1,num_v)]);
         mat_x = cell(len(end),1);
         mat_y = cell(len(end),1);
-        opts.patch_id
         if sum([3,4]==opts.patch_id)>0
             clusters=[];
             load(opts.clusterFnm)
@@ -99,21 +103,27 @@ switch opts.patch_id
             tmp_x = cell(1,len(i+1)-len(i));
             tmp_y = cell(1,len(i+1)-len(i));
             tmp_fn = U_getims([DD fns(i).name '/']);
+            if opts.did==2;tmp_fn([arrayfun(@(x) tmp_fn(x).name(1)=='g',1:numel(tmp_fn))])=[];end
             sz = size(gts{i});
             tmp_gts = single(gts{i});
             ind1 =[]; ind2=[]; tmp_im = cell(1,tsz);
-            tmp_n=dir([DD fns(i).name '/*.mat']);
-            tmp_n=tmp_n(1).name;
-            im_n = ['image' tmp_n(find(tmp_n=='e',1,'first')+1:find(tmp_n=='.',1,'first')-1) '.png'];
-            tcen = find(cell2mat(arrayfun(@(x) strcmp(im_n,tmp_fn(x).name),1:numel(tmp_fn),'UniformOutput',false)));
+            %numel(tmp_x)
+            tcen = U_getTcen([DD fns(i).name],opts.did);
             for j = 1:numel(tmp_x)
                 %parfor j = 1:numel(tmp_x)
                 if tcen-tscale(j)*tsz_h>0 && tcen+tscale(j)*tsz_h<=numel(tmp_fn)
                     tmp_dist = U_addnan(single(bwdist(tmp_gts>0)),psz_h);
+                    if sum([4 5]==opts.feat_id)>0
+                        load([opts.DD '../feat/of_' fns(i).name])
+                        of{numel(of)+1} = zeros(size(of{1}),'single');
+                    end
                     cc = 1;
                     for k= tcen+(-tsz_h*tscale(j):tscale(j):tsz_h*tscale(j))
                         tmp_im{cc} = imread([DD fns(i).name '/' tmp_fn(k).name]);
                         %tmp_im = imPad(tmp_im,psz_h,'symmetric');
+                        if sum([4 5]==opts.feat_id)>0
+                            tmp_im{cc} = cat(3,single(tmp_im{cc}),of{cc});
+                        end
                         cc = cc + 1;
                     end
                     if opts.patch_id ==2
@@ -122,8 +132,8 @@ switch opts.patch_id
                         ind1 = find(tmp_dist<2)';
                         tmp_ind1 = randsample(ind1,min(floor(opts.pratio*numel(ind1)),opts.num_pervol));
                         % sample neg:
-                        ind2 = find(tmp_dist>psz)';
-                        tmp_ind2 = randsample(ind2,opts.num_pervol_n);
+                        ind2 = find(tmp_dist>neg_dis)';
+                        tmp_ind2 = randsample(ind2,min(numel(ind2),opts.num_pervol_n));
                         tmp_x{j} = st3dGetFeature(tmp_im,[tmp_ind1 tmp_ind2],opts);
                         tmp_y{j} = [ones(numel(tmp_ind1),1,'uint8'); 2*ones(numel(tmp_ind2),1,'uint8')];
                         %tmp_y{j} = logical([ones(numel(tmp_ind1),1); zeros(numel(tmp_ind2),1)]);
@@ -140,7 +150,7 @@ switch opts.patch_id
                         % sample pos:
                         tmp_ind1 = tmp_center(tmp_center(:,1)==i & tmp_center(:,2)==j,3)';
                         % sample neg:
-                        ind2 = find(tmp_dist>psz)';
+                        ind2 = find(tmp_dist>neg_dis)';
                         tmp_ind2 = randsample(ind2,opts.num_pervol_n);
                         tmp_x{j} = st3dGetFeature(tmp_im,[tmp_ind1 tmp_ind2],opts);
                         tmp_y{j} = [uint8(tmp_center(tmp_center(:,1)==i & tmp_center(:,2)==j,4)); (1+opts.nClusters)*ones(numel(tmp_ind2),1,'uint8')];
